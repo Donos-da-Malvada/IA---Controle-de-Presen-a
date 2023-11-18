@@ -10,12 +10,24 @@ def prepare_training_data(data_folder_path):
     faces = []
     labels = []
 
-    for file_name in os.listdir("venv/img"):
+    for file_name in os.listdir(data_folder_path):
         if file_name.startswith("."):
             continue
 
-        image_path = data_folder_path + "/" + file_name
+        image_path = os.path.join(data_folder_path, file_name)
+
+        # Verificar se o caminho é um arquivo
+        if not os.path.isfile(image_path):
+            print(f"Não é um arquivo: {image_path}")
+            continue
+
         image = cv2.imread(image_path)
+
+        # Verificar se a imagem foi carregada corretamente
+        if image is None:
+            print(f"Imagem não carregada corretamente: {image_path}")
+            continue
+
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
         face = face_cascade.detectMultiScale(gray, 1.3, 5)
@@ -28,7 +40,7 @@ def prepare_training_data(data_folder_path):
 
     return faces, labels
 
-faces, labels = prepare_training_data("venv/img")
+faces, labels = prepare_training_data("datasets/Dani")
 
 # Criar e treinar o reconhecedor facial
 face_recognizer = face.LBPHFaceRecognizer_create()
