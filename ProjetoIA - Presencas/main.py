@@ -3,7 +3,6 @@ from cv2 import face
 import cv2.data
 import os
 import numpy as np
-import PySimpleGUI as sg
 
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
