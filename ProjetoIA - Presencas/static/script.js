@@ -4,6 +4,7 @@ document.getElementById("startRecognitionButton").addEventListener("click", func
         .then(data => console.log(data));
 });
 
+/*
 document.getElementById("sendDataButton").addEventListener("click", function() {
     fetch('/clear-sheet', { method: 'GET' })
         .then(response => response.json())
@@ -24,6 +25,7 @@ document.getElementById("sendDataButton").addEventListener("click", function() {
             console.error('Erro ao limpar a planilha:', error);
         });
 });
+ */
 
 function updateTable() {
     fetch('/get-sheet-data')
