@@ -61,7 +61,7 @@ def prepare_training_data(data_folder_paths):
             faces.append(gray[y:y+w, x:x+h])
             labels.append(label)
 
-        label_names[label] = folder_path.split('/')[-1]  # Obtém apenas o nome do diretório
+        label_names[label] = folder_path.split('/')[-1]
         label += 1
 
     return faces, labels, label_names
@@ -126,13 +126,11 @@ def get_sheet_data():
     service = build('sheets', 'v4', credentials=credentials)
 
     spreadsheet_id = '1V3fBr3cHjpOuvMSCEDaapgZ8lpfKzIddYvj6aZ9TQVk'
-    range_name = 'Página1!A1:E'  # Ajuste conforme a sua planilha
+    range_name = 'Página1!A1:E'
 
     sheet = service.spreadsheets()
     result = sheet.values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
     return result.get('values', [])
-
-
 
 @app.route('/')
 def home():
@@ -148,24 +146,20 @@ def start_face_recognition():
 
 @app.route('/clear-sheet')
 def clear_sheet():
-    # Configuração da API
     credentials = Credentials.from_service_account_file(
         'APIKEY/trabalhoDeIAAPIKEY.json',
         scopes=['https://www.googleapis.com/auth/spreadsheets']
     )
     service = build('sheets', 'v4', credentials=credentials)
 
-    # ID da planilha e intervalo a ser limpo
     spreadsheet_id = '1V3fBr3cHjpOuvMSCEDaapgZ8lpfKzIddYvj6aZ9TQVk'
-    range_to_clear = 'Página1!A1:E'  # Ajuste conforme necessário
+    range_to_clear = 'Página1!A1:E'
 
-    # Limpar o intervalo
     request_body = {
         'ranges': [range_to_clear]
     }
     service.spreadsheets().values().batchClear(spreadsheetId=spreadsheet_id, body=request_body).execute()
 
-    # Retornar uma resposta
     return jsonify({"message": "Planilha limpa com sucesso."})
 
 @app.route('/get-sheet-data')

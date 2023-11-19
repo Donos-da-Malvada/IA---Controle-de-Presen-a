@@ -11,13 +11,11 @@ document.getElementById("sendDataButton").addEventListener("click", function() {
             console.log(data.message);
             const alunos = ['Dani', 'Jao', 'SAM', 'Vini'];
             alunos.forEach(aluno => {
-                // Limpa a data e hora
                 const dateCell = document.getElementById('date-' + aluno);
                 if (dateCell) {
                     dateCell.textContent = 'Aguardando...';
                 }
                 
-                // Atualiza o estado da checkbox para unchecked
                 const checkboxContainer = document.getElementById('check-' + aluno);
                 checkboxContainer.innerHTML = '<div class="unchecked">✖</div>';
             });
@@ -33,7 +31,6 @@ function updateTable() {
         .then(data => {
             const alunos = ['Dani', 'Jao', 'SAM', 'Vini'];
 
-            // Limpando as datas anteriores e desmarcando as checkboxes
             alunos.forEach(aluno => {
                 const dateCell = document.getElementById('date-' + aluno);
                 const checkCell = document.getElementById('check-' + aluno);
@@ -43,7 +40,6 @@ function updateTable() {
                 }
             });
 
-            // Preenchendo as datas e marcando as checkboxes conforme os novos dados
             data.forEach(([aluno, dataHora]) => {
                 const dateCell = document.getElementById('date-' + aluno);
                 const checkCell = document.getElementById('check-' + aluno);
@@ -59,10 +55,8 @@ function updateTable() {
         });
 }
 
-// Inicializa a atualização da tabela quando a página carrega
 document.addEventListener('DOMContentLoaded', updateTable);
 
-// Configura a atualização da tabela para ocorrer a cada 30 segundos
 setInterval(updateTable, 100);
 
 
