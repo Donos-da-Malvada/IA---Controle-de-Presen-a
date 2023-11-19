@@ -3,15 +3,15 @@ from cv2 import face
 import cv2.data
 import os
 import numpy as np
-import PySimpleGUI as sg
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
+from datetime import datetime
 
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-def write_to_sheet(sheet_id, range_name, values):
+def write_to_sheet(sheet_id, values):
     credentials = Credentials.from_service_account_file(
-        'APIKEY',
+        'APIKEY/trabalhoDeIAAPIKEY.json',
         scopes=['https://www.googleapis.com/auth/spreadsheets']
     )
 
@@ -21,7 +21,7 @@ def write_to_sheet(sheet_id, range_name, values):
         'values': values
     }
     result = service.spreadsheets().values().append(
-        spreadsheetId=sheet_id, range=range_name,
+        spreadsheetId=sheet_id, range='Página1!A:A',
         valueInputOption='USER_ENTERED', body=body
     ).execute()
 
@@ -55,10 +55,13 @@ def prepare_training_data(data_folder_paths):
             faces.append(gray[y:y+w, x:x+h])
             labels.append(label)
 
-        label_names[label] = folder_path
+        label_names[label] = folder_path.split('/')[-1]  # Obtém apenas o nome do diretório
         label += 1
 
     return faces, labels, label_names
+
+def current_time():
+    return datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
 # Lista dos diretórios a serem analisados
 directories = ["datasets/Dani", "datasets/Jao", "datasets/SAM", "datasets/Vini"]
@@ -88,8 +91,7 @@ def predict(test_img):
 
 webcam = cv2.VideoCapture(0)
 
-count = 0
-face_validated = False
+validated_directories = set()  # Conjunto para armazenar diretórios já validados
 
 while True:
     ret, frame = webcam.read()
@@ -101,12 +103,15 @@ while True:
     # Exibir o frame processado
     cv2.imshow("Reconhecimento Facial", processed_frame)
 
-    if is_face_found:
+    if is_face_found and directory not in validated_directories:
         print(f"Rosto reconhecido do diretório: {directory}")
-        count += 1
-        face_validated = True
-    else:
-        face_validated = False
+
+        # Enviar dados para a planilha
+        time_stamp = current_time()
+        data = [[directory, time_stamp]]
+        write_to_sheet('1V3fBr3cHjpOuvMSCEDaapgZ8lpfKzIddYvj6aZ9TQVk', data)
+
+        validated_directories.add(directory)  # Adicionar diretório à lista de validados
 
     # Esc para sair
     if cv2.waitKey(1) == 27:
