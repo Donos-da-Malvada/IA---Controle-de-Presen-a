@@ -3,9 +3,13 @@ from cv2 import face
 import cv2.data
 import os
 import numpy as np
+import threading
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from datetime import datetime
+from flask import Flask, jsonify, request, render_template
+
+app = Flask(__name__)
 
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
@@ -25,7 +29,9 @@ def write_to_sheet(sheet_id, values):
         valueInputOption='USER_ENTERED', body=body
     ).execute()
 
-    print('{0} cells appended.'.format(result.get('updates').get('updatedCells')))
+def write_to_sheet_async(sheet_id, values):
+    thread = threading.Thread(target=write_to_sheet, args=(sheet_id, values))
+    thread.start()
 
 def prepare_training_data(data_folder_paths):
     faces = []
@@ -63,23 +69,18 @@ def prepare_training_data(data_folder_paths):
 def current_time():
     return datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
-# Lista dos diretórios a serem analisados
 directories = ["datasets/Dani", "datasets/Jao", "datasets/SAM", "datasets/Vini"]
 faces, labels, label_names = prepare_training_data(directories)
 
-# Criar e treinar o reconhecedor facial
 face_recognizer = face.LBPHFaceRecognizer_create()
 face_recognizer.train(faces, np.array(labels))
 
-# Função para prever o rosto
 def predict(test_img):
     img = test_img.copy()
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     faces = face_cascade.detectMultiScale(gray)
 
     for (x, y, w, h) in faces:
-        cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
-
         roi_gray = gray[y:y+h, x:x+w]
         label, confidence = face_recognizer.predict(roi_gray)
 
@@ -89,33 +90,95 @@ def predict(test_img):
 
     return img, False, None
 
-webcam = cv2.VideoCapture(0)
+camera_active = True
+validated_directories = set()
 
-validated_directories = set()  # Conjunto para armazenar diretórios já validados
+def run_face_recognition():
+    global camera_active, validated_directories
+    webcam = cv2.VideoCapture(0)
 
-while True:
-    ret, frame = webcam.read()
-    if not ret:
-        break
+    while camera_active:
+        ret, frame = webcam.read()
+        if not ret:
+            break
 
-    processed_frame, is_face_found, directory = predict(frame)
+        processed_frame, is_face_found, directory = predict(frame)
+        cv2.imshow("Reconhecimento Facial", processed_frame)
 
-    # Exibir o frame processado
-    cv2.imshow("Reconhecimento Facial", processed_frame)
+        if is_face_found and directory not in validated_directories:
+            print(f"Rosto reconhecido do diretório: {directory}")
+            time_stamp = current_time()
+            data = [[directory, time_stamp]]
+            write_to_sheet_async('1V3fBr3cHjpOuvMSCEDaapgZ8lpfKzIddYvj6aZ9TQVk', data)
+            validated_directories.add(directory)
 
-    if is_face_found and directory not in validated_directories:
-        print(f"Rosto reconhecido do diretório: {directory}")
+        if cv2.waitKey(1) == 27:
+            break
 
-        # Enviar dados para a planilha
-        time_stamp = current_time()
-        data = [[directory, time_stamp]]
-        write_to_sheet('1V3fBr3cHjpOuvMSCEDaapgZ8lpfKzIddYvj6aZ9TQVk', data)
+    webcam.release()
+    cv2.destroyAllWindows()
 
-        validated_directories.add(directory)  # Adicionar diretório à lista de validados
+def get_sheet_data():
+    credentials = Credentials.from_service_account_file(
+        'APIKEY/trabalhoDeIAAPIKEY.json',
+        scopes=['https://www.googleapis.com/auth/spreadsheets']
+    )
+    service = build('sheets', 'v4', credentials=credentials)
 
-    # Esc para sair
-    if cv2.waitKey(1) == 27:
-        break
+    spreadsheet_id = '1V3fBr3cHjpOuvMSCEDaapgZ8lpfKzIddYvj6aZ9TQVk'
+    range_name = 'Página1!A1:E'  # Ajuste conforme a sua planilha
 
-webcam.release()
-cv2.destroyAllWindows()
+    sheet = service.spreadsheets()
+    result = sheet.values().get(spreadsheetId=spreadsheet_id, range=range_name).execute()
+    return result.get('values', [])
+
+
+
+@app.route('/')
+def home():
+    alunos = [os.path.basename(directory) for directory in directories]
+    sheet_data = get_sheet_data()
+    return render_template('index.html', alunos=alunos, data=sheet_data)
+
+@app.route('/start-face-recognition')
+def start_face_recognition():
+    thread = threading.Thread(target=run_face_recognition)
+    thread.start()
+    return jsonify({"message": "Reconhecimento facial iniciado."})
+
+@app.route('/clear-sheet')
+def clear_sheet():
+    # Configuração da API
+    credentials = Credentials.from_service_account_file(
+        'APIKEY/trabalhoDeIAAPIKEY.json',
+        scopes=['https://www.googleapis.com/auth/spreadsheets']
+    )
+    service = build('sheets', 'v4', credentials=credentials)
+
+    # ID da planilha e intervalo a ser limpo
+    spreadsheet_id = '1V3fBr3cHjpOuvMSCEDaapgZ8lpfKzIddYvj6aZ9TQVk'
+    range_to_clear = 'Página1!A1:E'  # Ajuste conforme necessário
+
+    # Limpar o intervalo
+    request_body = {
+        'ranges': [range_to_clear]
+    }
+    service.spreadsheets().values().batchClear(spreadsheetId=spreadsheet_id, body=request_body).execute()
+
+    # Retornar uma resposta
+    return jsonify({"message": "Planilha limpa com sucesso."})
+
+@app.route('/get-sheet-data')
+def get_sheet_data_route():
+    sheet_data = get_sheet_data()
+    return jsonify(sheet_data)
+
+@app.route('/stop-camera')
+def stop_camera():
+    global camera_active
+    camera_active = False
+    return jsonify({"message": "Câmera desligada."})
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
