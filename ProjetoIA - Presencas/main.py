@@ -3,8 +3,29 @@ from cv2 import face
 import cv2.data
 import os
 import numpy as np
+import PySimpleGUI as sg
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
 
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+
+def write_to_sheet(sheet_id, range_name, values):
+    credentials = Credentials.from_service_account_file(
+        'APIKEY',
+        scopes=['https://www.googleapis.com/auth/spreadsheets']
+    )
+
+    service = build('sheets', 'v4', credentials=credentials)
+
+    body = {
+        'values': values
+    }
+    result = service.spreadsheets().values().append(
+        spreadsheetId=sheet_id, range=range_name,
+        valueInputOption='USER_ENTERED', body=body
+    ).execute()
+
+    print('{0} cells appended.'.format(result.get('updates').get('updatedCells')))
 
 def prepare_training_data(data_folder_paths):
     faces = []
