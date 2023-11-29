@@ -148,6 +148,7 @@ def start_face_recognition():
 
 @app.route('/clear-sheet')
 def clear_sheet():
+    global validated_directories
     credentials = Credentials.from_service_account_file(
         'APIKEY/trabalhoDeIAAPIKEY.json',
         scopes=['https://www.googleapis.com/auth/spreadsheets']
@@ -161,6 +162,7 @@ def clear_sheet():
         'ranges': [range_to_clear]
     }
     service.spreadsheets().values().batchClear(spreadsheetId=spreadsheet_id, body=request_body).execute()
+    validated_directories = set()
 
     return jsonify({"message": "Planilha limpa com sucesso."})
 
