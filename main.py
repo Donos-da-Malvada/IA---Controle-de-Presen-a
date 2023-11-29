@@ -90,7 +90,7 @@ def predict(test_img):
 
     return img, False, None
 
-camera_active = True
+camera_active = False
 validated_directories = set()
 
 def run_face_recognition():
@@ -140,6 +140,8 @@ def home():
 
 @app.route('/start-face-recognition')
 def start_face_recognition():
+    global camera_active
+    camera_active = True
     thread = threading.Thread(target=run_face_recognition)
     thread.start()
     return jsonify({"message": "Reconhecimento facial iniciado."})
