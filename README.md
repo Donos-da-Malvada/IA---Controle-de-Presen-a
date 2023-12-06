@@ -21,3 +21,6 @@ Este é um projeto de reconhecimento facial utilizando a biblioteca OpenCV em co
 - **`/get-sheet-data`:** Obtém os dados da planilha.
 - **`/stop-camera`:** Para a câmera e interrompe o reconhecimento facial.
 
+
+## Diagrama de Comunicação
+![teste](img/diagrama.png)
